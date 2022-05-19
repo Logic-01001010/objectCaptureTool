@@ -19,7 +19,8 @@ import cv2, datetime, threading
 width = 100
 height = 100
 path = "./"
-
+binarization = False
+vol = 0
 
 
 class Thread(QThread):
@@ -32,12 +33,21 @@ class Thread(QThread):
         global path
         global width
         global height
+        global binarization
+        global vol
 
         cap = cv2.VideoCapture(0)
         while True:
 
             ret, self.frame = cap.read()
             ret, self.saveFrame = cap.read()
+
+            if binarization:
+                self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+                self.saveFrame = cv2.cvtColor(self.saveFrame, cv2.COLOR_BGR2GRAY)
+
+                ret, self.frame = cv2.threshold(self.frame, vol, 255, cv2.THRESH_BINARY)                
+                ret, self.saveFrame = cv2.threshold(self.saveFrame, vol, 255, cv2.THRESH_BINARY)
 
             
             cv2.rectangle( self.frame, ( self.x - width, self.y - height ), ( self.x+width, self.y+height), (255, 255, 255), 3 )
@@ -131,12 +141,26 @@ class Ui_Form(object):
         self.pushButton.setEnabled(True)
         self.pushButton.setObjectName("pushButton")
         self.gridLayout_2.addWidget(self.pushButton, 1, 1, 1, 1)
+        self.checkBox = QtWidgets.QCheckBox(Form)
+        self.checkBox.setEnabled(True)
+        self.checkBox.setText('binarization')
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.checkBox)
+
+        self.horizontalSlider_3 = QtWidgets.QSlider(Form)
+        self.horizontalSlider_3.setOrientation(QtCore.Qt.Horizontal)
+        self.horizontalSlider_3.setObjectName("horizontalSlider")
+        self.horizontalSlider_3.setRange( 0, 255 )
+        self.horizontalSlider_3.setValue(0)
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.horizontalSlider_3)        
 
         self.retranslateUi(Form)
         self.pushButton_2.clicked.connect(self.selectDirectoryPath) # type: ignore
         self.pushButton.clicked.connect(self.capture) # type: ignore
         self.horizontalSlider.valueChanged[int].connect(self.setHeight)
         self.horizontalSlider_2.valueChanged[int].connect(self.setWidth)
+        self.horizontalSlider_3.valueChanged[int].connect(self.binarizationVol)
+
+        self.checkBox.clicked.connect(self.binarization)
 
 
 
@@ -168,6 +192,16 @@ class Ui_Form(object):
         
         t.start()
 
+    def binarization(self):
+        global binarization
+        if self.checkBox.isChecked():
+            binarization = True
+        else:
+            binarization = False
+
+    def binarizationVol(self, value):
+        global vol
+        vol = value
 
     def capture(self):
         global path
